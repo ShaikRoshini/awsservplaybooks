@@ -1,0 +1,72 @@
+---
+- hosts: localhost
+  connection: local
+  remote_user: root
+  become: yes
+  gather_facts: no
+  vars_files:
+    - awscreds
+  tasks:
+    - name: Creating Security Group
+      ec2_group:
+        name: AWS_Security_Group
+        description: Rules for allowing Traffic on port 22 and 80
+        aws_access_key: "{{aws_id}}"
+        aws_secret_key: "{{aws_key}}"
+        region: "{{aws_region}}"
+        rules:
+          - proto: tcp
+            from_port: 80
+            to_port: 80
+            cidr_ip: 0.0.0.0/0
+          - proto: tcp
+            from_port: 22
+            to_port: 22
+            cidr_ip: 0.0.0.0/0
+        rules_egress:
+          - proto: all
+            cidr_ip: 0.0.0.0/0
+
+    - name: Create an EC2 key
+      ec2_key:
+        name: gopinadh-key
+        aws_access_key: "{{aws_id}}"
+        aws_secret_key: "{{aws_key}}"
+        region: "{{aws_region}}"
+      register: gopindh_key 
+
+    - debug:
+        msg: "{{gopinadh_key.key.private_key}}"
+
+    - name: save private key
+      copy:
+        content: "{{gopinadh_key.key.private_key }}\n" 
+        dest: "./gopinadh.pem" 
+        mode: 0600
+      when: ec2_key.changed
+    
+    - name: Creating EC2 Instance
+      ec2:
+         key_name: AWS-key
+         aws_access_key: "{{aws_id}}"
+         aws_secret_key: "{{aws_key}}"
+         region: "{{aws_region}}"
+         instance_type: t2.micro
+         image: "{{ami}}"
+         wait: yes
+         wait_timeout: 500
+         count: 1
+         instance_tags:
+           Name: webserver
+           owner: gopinadh
+         monitoring: no
+         vpc_subnet_id: subnet-738b8138
+         assign_public_ip: yes
+         group: AWS_Security_Group
+      register: ec2_out
+
+    - debug: 
+        msg: "{{ec2_out.instances[0].public_dns_name}}"
+    - name: wait for SSH to comeup
+      wait_for: host={{ec2_out.instances[0].public_dns_name}} port=22 delay=60 timeout=320 state=started
+
