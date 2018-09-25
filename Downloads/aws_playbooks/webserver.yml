@@ -1,0 +1,11 @@
+--- # webserver setup
+- hosts: webserver
+  remote_user: ubuntu 
+  become: yes
+  tasks:
+    - name: installing apache2 package
+      apt: name=apache2 state=installed
+    - name: copy index.html
+      copy: src=index.html dest=/var/www/html/index.html
+    - name: start apache2 service
+      service: name=apache2 state=started
