@@ -1,0 +1,26 @@
+---
+- hosts: localhost
+  connection: local
+  remote_user: root
+  become: yes
+  gather_facts: no
+  vars_files:
+    - awscreds
+  tasks:
+    - name: Create an EC2 key
+      ec2_key:
+        name: Gopinadh-key
+        aws_access_key: "{{aws_id}}"
+        aws_secret_key: "{{aws_key}}"
+        region: "{{aws_region}}"
+      register: ec2_key
+
+    - debug:
+        msg: "{{ec2_key.key.private_key}}"
+
+    - name: save private key
+      copy:
+        content: "{{ ec2_key.key.private_key }}\n"
+        dest: "./gopinadh.pem"
+        mode: 0600
+      when: ec2_key.changed
