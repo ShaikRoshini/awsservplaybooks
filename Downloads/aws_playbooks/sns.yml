@@ -1,0 +1,22 @@
+---
+- hosts: localhost
+  connection: local
+  remote_user: root
+  become: yes
+  gather_facts: no
+  vars_files:
+    - awscreds
+  tasks:
+    - name: Create alarm SNS topic
+      sns_topic:
+        name: "alarms"
+        aws_access_key: "{{aws_id}}"
+        aws_secret_key: "{{aws_key}}"
+        region: "{{aws_region}}"
+        state: present
+        display_name: "alarm SNS topic"
+        subscriptions:
+          - endpoint: "gopinadh243p@gmail.com"
+            protocol: "email"
+
+
